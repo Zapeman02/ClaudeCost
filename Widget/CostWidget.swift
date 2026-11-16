@@ -1,23 +1,52 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
+
+enum PeriodOption: String, AppEnum {
+    case session, today, month
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Period"
+    static let caseDisplayRepresentations: [PeriodOption: DisplayRepresentation] = [
+        .session: "Session",
+        .today: "Today",
+        .month: "Month",
+    ]
+
+    var kind: PeriodKind {
+        switch self {
+        case .session: .session
+        case .today: .today
+        case .month: .month
+        }
+    }
+}
+
+struct CostWidgetIntent: WidgetConfigurationIntent {
+    static let title: LocalizedStringResource = "Claude Cost"
+    static let description = IntentDescription("Choose which period the small widget shows.")
+
+    @Parameter(title: "Period", default: .month)
+    var period: PeriodOption
+}
 
 struct CostEntry: TimelineEntry {
     let date: Date
     let summary: UsageSummary?
+    let period: PeriodKind
 }
 
-struct CostProvider: TimelineProvider {
+struct CostProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> CostEntry {
-        CostEntry(date: .now, summary: nil)
+        CostEntry(date: .now, summary: nil, period: .month)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (CostEntry) -> Void) {
-        completion(CostEntry(date: .now, summary: SummaryStore.shared?.load()))
+    func snapshot(for configuration: CostWidgetIntent, in context: Context) async -> CostEntry {
+        CostEntry(date: .now, summary: SummaryStore.shared?.load(), period: configuration.period.kind)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<CostEntry>) -> Void) {
-        let entry = CostEntry(date: .now, summary: SummaryStore.shared?.load())
-        completion(Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(AppSettings.widgetRefreshInterval))))
+    func timeline(for configuration: CostWidgetIntent, in context: Context) async -> Timeline<CostEntry> {
+        let entry = CostEntry(date: .now, summary: SummaryStore.shared?.load(), period: configuration.period.kind)
+        return Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(AppSettings.widgetRefreshInterval)))
     }
 }
 
@@ -39,7 +68,7 @@ struct CostWidgetView: View {
 
     private var size: DashboardView.Size {
         switch family {
-        case .systemSmall: .small
+        case .systemSmall: .small(entry.period)
         case .systemMedium: .medium
         default: .large
         }
@@ -49,7 +78,7 @@ struct CostWidgetView: View {
 @main
 struct CostWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "CostWidget", provider: CostProvider()) { entry in
+        AppIntentConfiguration(kind: "CostWidget", intent: CostWidgetIntent.self, provider: CostProvider()) { entry in
             CostWidgetView(entry: entry)
         }
         .configurationDisplayName("Claude Cost")

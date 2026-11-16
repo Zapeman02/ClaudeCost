@@ -132,25 +132,26 @@ struct PeriodCard: View {
 }
 
 struct DashboardView: View {
-    enum Size { case small, medium, large }
+    enum Size { case small(PeriodKind), medium, large }
 
     let summary: UsageSummary
     let size: Size
 
     var body: some View {
         switch size {
-        case .small:
+        case .small(let kind):
+            let secondary: PeriodKind = kind == .today ? .month : .today
             VStack(alignment: .leading, spacing: 4) {
-                PeriodHeader(kind: .month, detail: "")
-                Text(Format.dollars(summary.month.cost))
+                PeriodHeader(kind: kind, detail: "")
+                Text(Format.dollars(kind.period(in: summary).cost))
                     .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                CostChart(points: summary.month.points, color: Theme.month)
+                CostChart(points: kind.period(in: summary).points, color: kind.color)
                 HStack(spacing: 4) {
-                    Circle().fill(Theme.today).frame(width: 6, height: 6)
-                    Text("Today \(Format.dollars(summary.today.cost))")
+                    Circle().fill(secondary.color).frame(width: 6, height: 6)
+                    Text("\(secondary.title) \(Format.dollars(secondary.period(in: summary).cost))")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Theme.textSecondary)
                 }
