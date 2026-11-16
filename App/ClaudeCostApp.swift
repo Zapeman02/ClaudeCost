@@ -1,6 +1,15 @@
+import ServiceManagement
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Only on first launch, so turning it off in Settings sticks.
+        if !AppSettings.defaults.bool(forKey: AppSettings.loginItemConfiguredKey) {
+            try? SMAppService.mainApp.register()
+            AppSettings.defaults.set(true, forKey: AppSettings.loginItemConfiguredKey)
+        }
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         if urls.contains(SessionLauncher.url) {
             SessionLauncher.openNewSession()
@@ -20,6 +29,10 @@ struct ClaudeCostApp: App {
             Text(Format.dollars(monitor.summary?.month.cost ?? 0))
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView()
+        }
     }
 }
 
@@ -42,6 +55,10 @@ struct MenuPanel: View {
                     SessionLauncher.openNewSession()
                 }
                 Spacer()
+                SettingsLink {
+                    Image(systemName: "gearshape")
+                }
+                .simultaneousGesture(TapGesture().onEnded { NSApp.activate(ignoringOtherApps: true) })
                 Button("Quit") { NSApp.terminate(nil) }
                     .keyboardShortcut("q")
             }

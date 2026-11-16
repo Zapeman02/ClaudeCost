@@ -36,7 +36,7 @@ final class UsageMonitor: ObservableObject {
         summary = new
         try? store?.save(new)
         // WidgetKit budgets reloads, so only ask when the numbers actually moved.
-        if changed, Date().timeIntervalSince(lastWidgetReload) >= 30 {
+        if changed, Date().timeIntervalSince(lastWidgetReload) >= AppSettings.widgetRefreshInterval {
             lastWidgetReload = Date()
             WidgetCenter.shared.reloadAllTimelines()
         }

@@ -17,7 +17,7 @@ struct CostProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CostEntry>) -> Void) {
         let entry = CostEntry(date: .now, summary: SummaryStore.shared?.load())
-        completion(Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(5 * 60))))
+        completion(Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(AppSettings.widgetRefreshInterval))))
     }
 }
 

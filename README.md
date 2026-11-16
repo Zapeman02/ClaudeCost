@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="ClaudeCost icon">
+</p>
+
 <h1 align="center">ClaudeCost</h1>
 
 <p align="center">
@@ -46,6 +50,7 @@ Then add the widget: right-click the desktop → **Edit Widgets…** → search 
 | Click the widget | Opens Terminal with a new `claude` session in `~/Desktop/Projects` |
 | Click the cost in the menu bar | Opens the dashboard |
 | **New session** in the dashboard | Same as clicking the widget |
+| ⚙ in the dashboard | Opens Settings: open at login and widget refresh interval |
 | **Quit** in the dashboard (⌘Q) | Quits the app |
 
 ## Good to know
@@ -53,8 +58,8 @@ Then add the widget: right-click the desktop → **Edit Widgets…** → search 
 - **API-equivalent cost.** The numbers are what the tokens would cost at API prices, including cache reads and writes and fast mode. On a Pro or Max plan you don't pay this. It shows how much you get out of the subscription.
 - **Claude Code only.** Chats on claude.ai aren't stored locally, so they don't show up.
 - **Session** is the most recently active Claude Code session, including its subagents.
-- **Keep the app running.** The app reads the logs and the widget only displays what it saved. When the app isn't running the widget shows the last numbers.
-- **Widget refresh.** macOS limits how often widgets reload, so the widget can lag the menu bar a little. It reloads at most every 30 seconds, and only when a number changed.
+- **Starts at login.** The app reads the logs and the widget only displays what it saved, so the app adds itself as a login item on first launch. Turn it off in the app's Settings. When the app isn't running the widget shows the last numbers.
+- **Widget refresh.** The menu bar updates every 15 seconds. The widget reloads every 5 minutes by default (1 minute to 1 hour in Settings), and only when a number changed. macOS may still delay it.
 - **Prices** live in `Shared/Pricing.swift`. Update them there when Anthropic changes its pricing.
 - **macOS 14 Sonoma or later.**
 
