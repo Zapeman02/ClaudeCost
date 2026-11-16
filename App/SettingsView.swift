@@ -5,6 +5,8 @@ import WidgetKit
 struct SettingsView: View {
     @AppStorage(AppSettings.refreshKey, store: AppSettings.defaults)
     private var refreshMinutes = AppSettings.defaultRefreshMinutes
+    @AppStorage(AppSettings.sessionFolderKey, store: AppSettings.defaults)
+    private var sessionFolder = AppSettings.defaultSessionFolder
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -25,9 +27,23 @@ struct SettingsView: View {
             Text("The menu bar always updates every 15 seconds.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            LabeledContent("New session folder") {
+                Button((sessionFolder as NSString).abbreviatingWithTildeInPath, action: chooseSessionFolder)
+            }
         }
         .formStyle(.grouped)
         .frame(width: 360)
         .fixedSize()
+    }
+
+    private func chooseSessionFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.directoryURL = URL(fileURLWithPath: sessionFolder)
+        if panel.runModal() == .OK, let url = panel.url {
+            sessionFolder = url.path
+        }
     }
 }

@@ -9,6 +9,13 @@ enum AppSettings {
     static let refreshOptions = [1, 5, 15, 30, 60]
     static let defaultRefreshMinutes = 5
 
+    static let sessionFolderKey = "sessionFolder"
+    static let defaultSessionFolder = NSHomeDirectory() + "/Desktop/Projects"
+
+    static var sessionFolder: String {
+        defaults.string(forKey: sessionFolderKey) ?? defaultSessionFolder
+    }
+
     static var widgetRefreshInterval: TimeInterval {
         let minutes = defaults.integer(forKey: refreshKey)
         return Double(minutes > 0 ? minutes : defaultRefreshMinutes) * 60

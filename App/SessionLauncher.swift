@@ -7,9 +7,10 @@ enum SessionLauncher {
 
     static func openNewSession() {
         let script = FileManager.default.temporaryDirectory.appendingPathComponent("claude-session.command")
+        let folder = AppSettings.sessionFolder.replacingOccurrences(of: "'", with: "'\\''")
         let contents = """
         #!/bin/zsh -l
-        cd "$HOME/Desktop/Projects" && exec claude
+        cd '\(folder)' && exec claude
 
         """
         do {
