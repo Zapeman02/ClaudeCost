@@ -11,6 +11,8 @@ enum Theme {
     static let session = dynamic(light: 0x2A78D6, dark: 0x3987E5)
     static let today = dynamic(light: 0xEB6834, dark: 0xD95926)
     static let month = dynamic(light: 0x1BAF7A, dark: 0x199E70)
+    static let fiveHour = dynamic(light: 0xD6409F, dark: 0xE25CAE)
+    static let week = dynamic(light: 0x7A5AF8, dark: 0x8B6CF9)
 
     private static func dynamic(light: Int, dark: Int) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -36,6 +38,10 @@ enum Format {
         if value >= 10_000 { return String(format: "$%.1fk", value / 1000) }
         if value >= 1000 { return String(format: "$%.0f", value) }
         return String(format: "$%.2f", value)
+    }
+
+    static func reset(_ date: Date) -> String {
+        "resets " + date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
     }
 
     static func tokens(_ value: Int) -> String {

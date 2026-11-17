@@ -26,7 +26,8 @@ final class UsageMonitor: ObservableObject {
         queue.async {
             let now = Date()
             let monthStart = Calendar.current.dateInterval(of: .month, for: now)?.start ?? now
-            let summary = builder.build(from: scanner.scan(since: monthStart), now: now)
+            var summary = builder.build(from: scanner.scan(since: monthStart), now: now)
+            summary.limits = PlanLimits.load()
             Task { @MainActor in self.publish(summary) }
         }
     }
@@ -47,5 +48,7 @@ final class UsageMonitor: ObservableObject {
         return Int(a.session.cost * 100) == Int(b.session.cost * 100)
             && Int(a.today.cost * 100) == Int(b.today.cost * 100)
             && Int(a.month.cost * 100) == Int(b.month.cost * 100)
+            && a.limits?.session.map { Int($0.usedPercent) } == b.limits?.session.map { Int($0.usedPercent) }
+            && a.limits?.week.map { Int($0.usedPercent) } == b.limits?.week.map { Int($0.usedPercent) }
     }
 }

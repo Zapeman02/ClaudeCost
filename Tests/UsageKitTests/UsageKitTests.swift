@@ -103,3 +103,24 @@ final class LogScannerTests: XCTestCase {
         XCTAssertEqual(scanner.scan(since: .distantPast).count, 2)
     }
 }
+
+final class PlanLimitsTests: XCTestCase {
+    func testParsesStatusLineLimits() throws {
+        let json = #"{"five_hour":{"used_percentage":12.5,"resets_at":1738425600},"seven_day":{"used_percentage":41,"resets_at":1738857600}}"#
+        let limits = try XCTUnwrap(PlanLimits.parse(Data(json.utf8)))
+        XCTAssertEqual(limits.session?.usedPercent, 12.5)
+        XCTAssertEqual(limits.week?.usedPercent, 41)
+        XCTAssertEqual(limits.week?.resetsAt, Date(timeIntervalSince1970: 1738857600))
+    }
+
+    func testMissingWindowsGiveNil() {
+        XCTAssertNil(PlanLimits.parse(Data(#"{"five_hour":null,"seven_day":null}"#.utf8)))
+        XCTAssertNil(PlanLimits.parse(Data("not json".utf8)))
+    }
+
+    func testPassedResetMeansZeroUsed() {
+        let window = LimitWindow(usedPercent: 80, resetsAt: Date(timeIntervalSince1970: 1000))
+        XCTAssertEqual(window.percent(at: Date(timeIntervalSince1970: 999)), 80)
+        XCTAssertEqual(window.percent(at: Date(timeIntervalSince1970: 1000)), 0)
+    }
+}

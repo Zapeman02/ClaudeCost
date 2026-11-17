@@ -1,6 +1,48 @@
 import Charts
 import SwiftUI
 
+enum LimitKind: CaseIterable {
+    case fiveHour, week
+
+    var title: String {
+        switch self {
+        case .fiveHour: "5h"
+        case .week: "Week"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .fiveHour: Theme.fiveHour
+        case .week: Theme.week
+        }
+    }
+
+    func window(in limits: PlanLimits?) -> LimitWindow? {
+        switch self {
+        case .fiveHour: limits?.session
+        case .week: limits?.week
+        }
+    }
+}
+
+enum LimitChoice {
+    case fiveHour, week, both, closest
+
+    func kinds(in limits: PlanLimits?) -> [LimitKind] {
+        switch self {
+        case .fiveHour: [.fiveHour]
+        case .week: [.week]
+        case .both: [.fiveHour, .week]
+        case .closest:
+            LimitKind.allCases
+                .compactMap { kind in kind.window(in: limits).map { (kind, $0.percent(at: .now)) } }
+                .max { $0.1 < $1.1 }
+                .map { [$0.0] } ?? []
+        }
+    }
+}
+
 enum PeriodKind: CaseIterable {
     case session, today, month
 
@@ -131,11 +173,49 @@ struct PeriodCard: View {
     }
 }
 
+struct LimitBar: View {
+    let kind: LimitKind
+    let window: LimitWindow
+
+    var body: some View {
+        let percent = window.percent(at: .now)
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Circle().fill(kind.color).frame(width: 7, height: 7)
+                Text(kind.title.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.textSecondary)
+                Text("\(Int(percent.rounded()))% used")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer(minLength: 4)
+                Text(Format.reset(window.resetsAt))
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.textMuted)
+                    .lineLimit(1)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Theme.gridline)
+                    Capsule().fill(kind.color).frame(width: geo.size.width * min(percent, 100) / 100)
+                }
+            }
+            .frame(height: 5)
+        }
+    }
+}
+
 struct DashboardView: View {
     enum Size { case small(PeriodKind), medium, large }
 
     let summary: UsageSummary
     let size: Size
+    var limits: LimitChoice = .week
+
+    private var shownLimits: [(kind: LimitKind, window: LimitWindow)] {
+        limits.kinds(in: summary.limits).compactMap { kind in kind.window(in: summary.limits).map { (kind, $0) } }
+    }
 
     var body: some View {
         switch size {
@@ -155,11 +235,24 @@ struct DashboardView: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Theme.textSecondary)
                 }
+                ForEach(shownLimits, id: \.kind) { limit in
+                    HStack(spacing: 4) {
+                        Circle().fill(limit.kind.color).frame(width: 6, height: 6)
+                        Text("\(limit.kind.title) \(Int(limit.window.percent(at: .now).rounded()))%")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
             }
         case .medium:
-            HStack(spacing: 14) {
-                ForEach(PeriodKind.allCases, id: \.self) { kind in
-                    PeriodCard(kind: kind, period: kind.period(in: summary), layout: .column)
+            VStack(spacing: 8) {
+                HStack(spacing: 14) {
+                    ForEach(PeriodKind.allCases, id: \.self) { kind in
+                        PeriodCard(kind: kind, period: kind.period(in: summary), layout: .column)
+                    }
+                }
+                ForEach(shownLimits, id: \.kind) { limit in
+                    LimitBar(kind: limit.kind, window: limit.window)
                 }
             }
         case .large:
@@ -169,6 +262,14 @@ struct DashboardView: View {
                         Rectangle().fill(Theme.gridline).frame(height: 1).padding(.vertical, 10)
                     }
                     PeriodCard(kind: kind, period: kind.period(in: summary), layout: .row)
+                }
+                if !shownLimits.isEmpty {
+                    Rectangle().fill(Theme.gridline).frame(height: 1).padding(.vertical, 10)
+                    VStack(spacing: 8) {
+                        ForEach(shownLimits, id: \.kind) { limit in
+                            LimitBar(kind: limit.kind, window: limit.window)
+                        }
+                    }
                 }
                 Text("API-equivalent cost · updated \(summary.generatedAt.formatted(date: .omitted, time: .shortened))")
                     .font(.system(size: 10))

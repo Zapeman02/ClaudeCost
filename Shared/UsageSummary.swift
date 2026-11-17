@@ -21,6 +21,42 @@ struct UsageSummary: Codable, Equatable {
     let session: UsagePeriod
     let today: UsagePeriod
     let month: UsagePeriod
+    var limits: PlanLimits?
+}
+
+struct LimitWindow: Codable, Equatable {
+    let usedPercent: Double
+    let resetsAt: Date
+
+    // Claude Code stops reporting a window once it resets, so a passed reset means the window is fresh.
+    func percent(at now: Date) -> Double {
+        now >= resetsAt ? 0 : usedPercent
+    }
+}
+
+// Plan rate limits saved by scripts/statusline.sh from Claude Code's status line data.
+struct PlanLimits: Codable, Equatable {
+    let session: LimitWindow?
+    let week: LimitWindow?
+
+    static let defaultURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/claudecost-limits.json")
+
+    static func load(from url: URL = defaultURL) -> PlanLimits? {
+        (try? Data(contentsOf: url)).flatMap(parse)
+    }
+
+    static func parse(_ data: Data) -> PlanLimits? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        let limits = PlanLimits(session: window(json["five_hour"]), week: window(json["seven_day"]))
+        return limits.session == nil && limits.week == nil ? nil : limits
+    }
+
+    private static func window(_ value: Any?) -> LimitWindow? {
+        guard let dict = value as? [String: Any],
+              let used = (dict["used_percentage"] as? NSNumber)?.doubleValue,
+              let resets = (dict["resets_at"] as? NSNumber)?.doubleValue else { return nil }
+        return LimitWindow(usedPercent: used, resetsAt: Date(timeIntervalSince1970: resets))
+    }
 }
 
 struct SummaryBuilder {

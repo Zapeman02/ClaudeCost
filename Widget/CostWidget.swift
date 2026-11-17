@@ -21,31 +21,56 @@ enum PeriodOption: String, AppEnum {
     }
 }
 
+enum LimitOption: String, AppEnum {
+    case fiveHour, week, both, closest
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Plan limit"
+    static let caseDisplayRepresentations: [LimitOption: DisplayRepresentation] = [
+        .fiveHour: "5-hour window",
+        .week: "Weekly",
+        .both: "Both",
+        .closest: "Closest limit (auto)",
+    ]
+
+    var choice: LimitChoice {
+        switch self {
+        case .fiveHour: .fiveHour
+        case .week: .week
+        case .both: .both
+        case .closest: .closest
+        }
+    }
+}
+
 struct CostWidgetIntent: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Claude Cost"
-    static let description = IntentDescription("Choose which period the small widget shows.")
+    static let description = IntentDescription("Choose which period the small widget shows and which plan limits to show.")
 
     @Parameter(title: "Period", default: .month)
     var period: PeriodOption
+
+    @Parameter(title: "Plan limit", default: .week)
+    var limit: LimitOption
 }
 
 struct CostEntry: TimelineEntry {
     let date: Date
     let summary: UsageSummary?
     let period: PeriodKind
+    let limits: LimitChoice
 }
 
 struct CostProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> CostEntry {
-        CostEntry(date: .now, summary: nil, period: .month)
+        CostEntry(date: .now, summary: nil, period: .month, limits: .week)
     }
 
     func snapshot(for configuration: CostWidgetIntent, in context: Context) async -> CostEntry {
-        CostEntry(date: .now, summary: SummaryStore.shared?.load(), period: configuration.period.kind)
+        CostEntry(date: .now, summary: SummaryStore.shared?.load(), period: configuration.period.kind, limits: configuration.limit.choice)
     }
 
     func timeline(for configuration: CostWidgetIntent, in context: Context) async -> Timeline<CostEntry> {
-        let entry = CostEntry(date: .now, summary: SummaryStore.shared?.load(), period: configuration.period.kind)
+        let entry = CostEntry(date: .now, summary: SummaryStore.shared?.load(), period: configuration.period.kind, limits: configuration.limit.choice)
         return Timeline(entries: [entry], policy: .after(.now.addingTimeInterval(AppSettings.widgetRefreshInterval)))
     }
 }
@@ -57,7 +82,7 @@ struct CostWidgetView: View {
     var body: some View {
         Group {
             if let summary = entry.summary {
-                DashboardView(summary: summary, size: size)
+                DashboardView(summary: summary, size: size, limits: entry.limits)
             } else {
                 EmptyDashboardView()
             }

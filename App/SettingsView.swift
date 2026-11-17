@@ -7,6 +7,10 @@ struct SettingsView: View {
     private var refreshMinutes = AppSettings.defaultRefreshMinutes
     @AppStorage(AppSettings.sessionFolderKey, store: AppSettings.defaults)
     private var sessionFolder = AppSettings.defaultSessionFolder
+    @AppStorage(AppSettings.menuBarItemKey, store: AppSettings.defaults)
+    private var menuBarItem = MenuBarItem.month
+    @AppStorage(AppSettings.menuBarLayoutKey, store: AppSettings.defaults)
+    private var menuBarLayout = MenuBarLayout.inline
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
@@ -16,6 +20,17 @@ struct SettingsView: View {
                     try? enabled ? SMAppService.mainApp.register() : SMAppService.mainApp.unregister()
                     launchAtLogin = SMAppService.mainApp.status == .enabled
                 }
+            Picker("Menu bar shows", selection: $menuBarItem) {
+                ForEach(MenuBarItem.allCases, id: \.self) { item in
+                    Text(item.title).tag(item)
+                }
+            }
+            Picker("Limit layout", selection: $menuBarLayout) {
+                ForEach(MenuBarLayout.allCases, id: \.self) { layout in
+                    Text(layout.title).tag(layout)
+                }
+            }
+            .pickerStyle(.segmented)
             Picker("Widget refresh", selection: $refreshMinutes) {
                 ForEach(AppSettings.refreshOptions, id: \.self) { minutes in
                     Text(minutes == 60 ? "Every hour" : "Every \(minutes) min").tag(minutes)
